@@ -102,3 +102,27 @@ def spot_checkpoint_cost(
         "on_demand_cost": round(on_demand_cost, 2),
         "savings_pct": round(savings_pct, 1),
     }
+
+
+def cache_is_worth_it(
+    avg_cache_reads: float,
+    write_cost_per_m: float = 0.50,
+    read_discount: float = 0.10,
+    base_price_per_m: float = 3.00,
+) -> bool:
+    """Determine if prompt caching saves money given average number of reads per cached prefix.
+
+    Cache is worth it when: total savings from discounted reads > write overhead.
+    Write cost is paid once; each read saves (1 - read_discount) * base_price.
+    Break-even reads = write_cost / ((1 - read_discount) * base_price_per_m)
+
+    Returns True if avg_cache_reads exceeds the break-even threshold.
+    """
+    if base_price_per_m <= 0:
+        return False
+    savings_per_read = (1.0 - read_discount) * base_price_per_m
+    if savings_per_read <= 0:
+        return False
+    break_even_reads = write_cost_per_m / savings_per_read
+    return avg_cache_reads >= break_even_reads
+
